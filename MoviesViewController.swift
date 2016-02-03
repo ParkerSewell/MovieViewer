@@ -20,6 +20,8 @@ class MoviesViewController: UIViewController, UITableViewDataSource, UISearchBar
     
     var movies: [NSDictionary]?
     var filterMovies: [NSDictionary]?
+    var refreshControl: UIRefreshControl!
+    var endpoint: String = ""
     
     //Check this last bracket... May be wrong
     
@@ -29,9 +31,11 @@ class MoviesViewController: UIViewController, UITableViewDataSource, UISearchBar
         tableView.dataSource = self
         searchBar.delegate = self
         
-        let refreshControl = UIRefreshControl()
+        refreshControl = UIRefreshControl()
         refreshControl.addTarget(self, action: "refreshControlAction:", forControlEvents: UIControlEvents.ValueChanged)
         tableView.insertSubview(refreshControl, atIndex: 0)
+        
+        networkRequest()
     }
     
     @IBAction func onTap(sender: AnyObject) {
@@ -41,13 +45,55 @@ class MoviesViewController: UIViewController, UITableViewDataSource, UISearchBar
     
     
     //Check this func... May be wrong down the road
+    func networkRequest(){
+        
+        let apiKey = "a07e22bc18f5cb106bfe4cc1f83ad8ed"
+        let url = NSURL(string: "https://api.themoviedb.org/3/movie/\(endpoint)?api_key=\(apiKey)")
+        let request = NSURLRequest(
+            
+            URL: url!,
+            cachePolicy: NSURLRequestCachePolicy.ReloadIgnoringLocalCacheData,
+            timeoutInterval: 10)
+        
+        let session = NSURLSession(
+            configuration: NSURLSessionConfiguration.defaultSessionConfiguration(),
+            delegate: nil,
+            delegateQueue: NSOperationQueue.mainQueue()
+        )
+        
+        MBProgressHUD.showHUDAddedTo(self.view, animated: true)
+        
+        let task: NSURLSessionDataTask = session.dataTaskWithRequest(request,
+            completionHandler: { (dataOrNil, response, error) in
+                if let data = dataOrNil {
+                    if let responseDictionary = try! NSJSONSerialization.JSONObjectWithData(
+                        data, options:[]) as? NSDictionary {
+                            print("response: \(responseDictionary)")
+                            MBProgressHUD.hideHUDForView(self.view, animated: true)
+                            
+                            
+                            self.movies = responseDictionary["results"]as? [NSDictionary]
+                            self.filterMovies = self.movies
+                            self.tableView.reloadData()
+                            self.refreshControl.endRefreshing()
+                            
+                    }
+                }
+                else {
+                    print("There is an error")
+                    self.networkError.hidden = false
+                }
+        })
+        task.resume()
+        
+    }
     
     func refreshControlAction(refreshControl: UIRefreshControl) {
         
 
 
         let apiKey = "a07e22bc18f5cb106bfe4cc1f83ad8ed"
-        let url = NSURL(string: "https://api.themoviedb.org/3/movie/now_playing?api_key=\(apiKey)")
+        let url = NSURL(string: "https://api.themoviedb.org/3/movie/\(endpoint)?api_key=\(apiKey)")
         let request = NSURLRequest(
  
             URL: url!,
@@ -72,7 +118,7 @@ class MoviesViewController: UIViewController, UITableViewDataSource, UISearchBar
                             
                         
                             self.movies = responseDictionary["results"]as? [NSDictionary]
-                            self.filterMovies = self.movies!
+                            self.filterMovies = self.movies
                             self.tableView.reloadData()
                             refreshControl.endRefreshing()
                             
@@ -143,29 +189,45 @@ class MoviesViewController: UIViewController, UITableViewDataSource, UISearchBar
         
         let baseUrl = "http://image.tmdb.org/t/p/w500"
         
-        let imageUrl = NSURL(string: baseUrl + posterPath)
+        if let imageUrl = NSURL(string: baseUrl + posterPath) {
         
-        cell.posterView.setImageWithURL(imageUrl!)
+        cell.posterView.setImageWithURL(imageUrl)
         
         cell.movieTitle.text = title
-        cell.movieOverview.text = overview
+            cell.movieOverview.text = overview }
 
        // print("row \(indexPath.row)")
         return cell
             
     }
+    
+    
 
 
 
 
-    /*
+    
     // MARK: - Navigation
 
     // In a storyboard-based application, you will often want to do a little preparation before navigation
     override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
+        
+        let cell = sender as! UITableViewCell
+        let indexPath = tableView.indexPathForCell(cell)
+        let movie = movies![indexPath!.row]
+        
+        let detailViewController = segue.destinationViewController as! DetailViewController
+        
+        detailViewController.movie = movie
+        
+        print("Prepare for segue")
+        
+        
+        
+        
         // Get the new view controller using segue.destinationViewController.
         // Pass the selected object to the new view controller.
     }
-    */
+    
 
 }
