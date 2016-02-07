@@ -39,8 +39,14 @@ class MoviesViewController: UIViewController, UITableViewDataSource, UISearchBar
     }
     
     @IBAction func onTap(sender: AnyObject) {
+        view.endEditing(true)
         searchBar.endEditing(true)
     }
+    
+  
+    
+    
+    
     
     
     
@@ -194,7 +200,10 @@ class MoviesViewController: UIViewController, UITableViewDataSource, UISearchBar
         cell.posterView.setImageWithURL(imageUrl)
         
         cell.movieTitle.text = title
-            cell.movieOverview.text = overview }
+            cell.movieOverview.text = overview
+        
+            // No color when the user selects cell
+        cell.selectionStyle = .None}
 
        // print("row \(indexPath.row)")
         return cell
